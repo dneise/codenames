@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    </head>
+    <body>
+    <div id="app">
+      <div class="container">
+        <h3>{{game_state_str}} - Du bist in {{team}}</h3>
+        <h4>Tipp: {{tipp}}</h4>
+
+        <div class="row" v-for="row in cards">
+            <button type="button" :class="btn_class(card)" v-for="card in row" v-on:click="on_click" :value="card.text">{{card.text}}</button>
+        </div>
+
+        <button type="button" class="btn btn-danger" @click="team_setting" value="red_team">Team Rot</button>
+        <button type="button" class="btn btn-primary" @click="team_setting" value="blue_team">Team Blau</button>
+        <button type="button" class="btn btn-dark" @click="set_explainer" value="explainer">ErklärBär</button>
+        <button type="button" class="btn btn-warning" @click="set_guesser" value="guesser">Rater</button>
+        <br>
+        <button type="button" class="btn btn-outline-dark" v-if="is_guesser" @click="stop_guessing">Schluss mit Lustig Raten!</button>
+        <br>
+        <button type="button" class="btn btn-danger" @click="reset">! RESET !</button>
+        <br>
+        <div v-if="is_explainer && (game_state % 2 == 0)">
+          Tipp: <input @change="input_onchange">
+        </div>
+
+        <ul>
+          <li v-for="ti in tipps">
+            {{ ti }}
+          </li>
+        </ul>
+
+      </div>
+    </div>
+
+<script>
+
+"use strict"
+
+
+
+
+var app = new Vue({
+    el: "#app",
+    data () {
+      return {
+        table_key: "foo",
+        table_state: "",
+        event: "",
+        tipps: [],
+
+        game_state: undefined,
+        cards: [],
+
+        is_guesser: undefined,
+        is_explainer: undefined,
+        team: undefined,
+      }
+    },
+    computed: {
+      game_state_str: function() {
+        let game_state_map = {
+          0: "Team Blau erklärt",
+          1: "Team Blau muss raten",
+          2: "Team Rot erklärt",
+          3: "Team Rot muss raten",
+          4: "Boom die Bombe!",
+        };
+        return  game_state_map[this.game_state];
+      },
+      tipp: function() {
+        return this.tipps[this.tipps.length - 1];
+      }
+    },
+    filter: {
+    },
+    methods: {
+      btn_class: function(card) {
+
+        let map_revealed = {
+          1: "btn btn-primary",  // blue
+          2: "btn btn-danger",   // red
+          0: "btn btn-secondary",
+          3: "btn btn-dark",
+        };
+        let map_hidden = {
+          1: "btn btn-outline-primary",
+          2: "btn btn-outline-danger",
+          0: "btn btn-outline-secondary",
+          3: "btn btn-dark",
+        };
+
+
+        if (card.revealed) {
+          return map_revealed[card.solution];
+        } else if (this.is_explainer) {
+          return map_hidden[card.solution];
+        } else {
+          return "btn btn-outline-secondary";
+        }
+      },
+      stop_guessing: function(event) {
+        if (
+          this.is_guesser &&
+          (this.game_state==1 && this.team=="blue_team") ||
+          (this.game_state==3 && this.team=="red_team")
+        ) {
+          axios.get(
+            `/stop_guessing/${this.table_key}`
+          ).then(
+            (response) => this.load_table_state(response.data)
+          )
+        }
+      },
+      on_click: function(event) {
+        this.event = event;
+        let card_text = event.target.value;
+        let card = undefined;
+        let row_id;
+        let col_id;
+
+        loops:
+        for (row_id=0; row_id<this.cards.length; row_id++){
+          let row = this.cards[row_id];
+          for (col_id=0; col_id<row.length; col_id++){
+            let c = row[col_id];
+            if (c.text == card_text){
+              card = c;
+              break loops;
+            }
+          }
+        }
+
+        if (card === undefined) {
+          throw "Card text not found";
+        }
+
+        if (
+          (!card.revealed) &&
+          this.is_guesser &&
+          (this.game_state==1 && this.team=="blue_team") ||
+          (this.game_state==3 && this.team=="red_team")
+        ) {
+          axios.get(
+            `/guess/${this.table_key}/${row_id}/${col_id}`
+          ).then(
+            (response) => this.load_table_state(response.data)
+          )
+        }
+      },
+      input_onchange: function(event) {
+        let new_tipp = event.target.value;
+        console.log("new tipp: " + new_tipp);
+        if (
+          this.is_explainer &&
+          (this.game_state==0 && this.team=="blue_team") ||
+          (this.game_state==2 && this.team=="red_team")
+        ) {
+          axios.post(
+            `/new_tipp/${this.table_key}/${this.team}`,
+            {
+              'new_tipp': new_tipp
+            }
+          ).then(
+            (response) => this.load_table_state(response.data)
+          );
+        }
+      },
+      reset: function(event) {
+        console.log("RESET button clicked");
+        axios.get(`/reset/${this.table_key}`).then(
+          (response) => this.load_table_state(response.data)
+        );
+      },
+      team_setting: function(event) {
+        let clicked_button = event.target.value;
+        this.team = event.target.value
+      },
+      set_explainer: function(event) {
+        this.is_explainer = true;
+        this.is_guesser = false;
+      },
+      set_guesser: function(event) {
+        this.is_guesser = true;
+        this.is_explainer = false;
+      },
+      load_table_state: function(table_state) {
+          this.game_state = table_state.game_state;
+          this.cards = [
+            table_state.cards.splice(0, 5),
+            table_state.cards.splice(0, 5),
+            table_state.cards.splice(0, 5),
+            table_state.cards.splice(0, 5),
+            table_state.cards.splice(0, 5),
+          ];
+          this.tipps = table_state.tipps;
+      },
+      update_stuff: function() {
+        axios.get(
+          `/table/${this.table_key}`
+        ).then(
+          (response) => this.load_table_state(response.data)
+        )
+      }
+    },
+    mounted: function () {
+      console.log('mounted function is executed');
+      this.update_stuff();
+      setInterval(this.update_stuff, 1000);
+    },
+})
+
+        </script>
+        <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+    </body>
+</html>
