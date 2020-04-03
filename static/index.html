@@ -9,34 +9,45 @@
     </head>
     <body>
     <div id="app">
-      <div class="container">
-        <h3>{{game_state_str}} - Du bist in {{team}}</h3>
-        <h4>Tipp: {{tipp}}</h4>
-
-        <div class="row" v-for="row in cards">
-            <button type="button" :class="btn_class(card)" v-for="card in row" v-on:click="on_click" :value="card.text">{{card.text}}</button>
-        </div>
-
-        <button type="button" class="btn btn-danger" @click="team_setting" value="red_team">Team Rot</button>
-        <button type="button" class="btn btn-primary" @click="team_setting" value="blue_team">Team Blau</button>
-        <button type="button" class="btn btn-dark" @click="set_explainer" value="explainer">ErklärBär</button>
-        <button type="button" class="btn btn-warning" @click="set_guesser" value="guesser">Rater</button>
-        <br>
-        <button type="button" class="btn btn-outline-dark" v-if="is_guesser" @click="stop_guessing">Schluss mit Lustig Raten!</button>
-        <br>
-        <button type="button" class="btn btn-danger" @click="reset">! RESET !</button>
-        <br>
-        <div v-if="is_explainer && (game_state % 2 == 0)">
-          Tipp: <input @change="input_onchange">
-        </div>
-
-        <ul>
-          <li v-for="ti in tipps">
-            {{ ti }}
-          </li>
-        </ul>
-
+      <div v-if="!username">
+          <h1>Willkommen Commander</h1>
+          Bitte geben Sie ihren Namen ein:
+          <input type="text" placeholder="Schnullerbacke" @change="new_username">
       </div>
+
+      <div v-if="username">
+        <div class="container">
+          <h3>Hallo {{username}}</h3>
+          <h3>{{game_state_str}} - Du bist in {{team}}</h3>
+          <h4>Tipp: {{tipp}}</h4>
+
+          <div class="row" v-for="row in cards">
+              <button type="button" :class="btn_class(card)" v-for="card in row" v-on:click="on_click" :value="card.text">{{card.text}}</button>
+          </div>
+
+          <button type="button" class="btn btn-danger" @click="team_setting" value="red_team">Team Rot</button>
+          <button type="button" class="btn btn-primary" @click="team_setting" value="blue_team">Team Blau</button>
+          <button type="button" class="btn btn-dark" @click="set_explainer" value="explainer">ErklärBär</button>
+          <button type="button" class="btn btn-warning" @click="set_guesser" value="guesser">Rater</button>
+          <br>
+          <button type="button" class="btn btn-outline-dark" v-if="is_guesser" @click="stop_guessing">Schluss mit Lustig Raten!</button>
+          <br>
+          <button type="button" class="btn btn-danger" @click="reset">! RESET !</button>
+          <br>
+          <div v-if="is_explainer && (game_state % 2 == 0)">
+            Tipp: <input @change="input_onchange">
+          </div>
+
+          <ul>
+            <li v-for="ti in tipps">
+              {{ ti }}
+            </li>
+          </ul>
+
+        </div>
+      </div>
+
+
     </div>
 
 <script>
@@ -50,6 +61,9 @@ var app = new Vue({
     el: "#app",
     data () {
       return {
+        at_table: undefined,
+        username: undefined,
+
         table_key: "foo",
         table_state: "",
         event: "",
@@ -81,6 +95,11 @@ var app = new Vue({
     filter: {
     },
     methods: {
+      new_username: function(event) {
+        let _username = event.target.value;
+        localStorage.username = _username;
+        this.username = _username;
+      },
       btn_class: function(card) {
 
         let map_revealed = {
@@ -213,6 +232,8 @@ var app = new Vue({
       console.log('mounted function is executed');
       this.update_stuff();
       setInterval(this.update_stuff, 1000);
+
+      this.username = localStorage.username;
     },
 })
 
