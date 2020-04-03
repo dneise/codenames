@@ -1,13 +1,3 @@
-'''Bern Ticket Web App
-
-Usage:
-  flask_app [options]
-
-Options:
-  -h --help          Show this screen.
-  -f --fakeserver    use fake server
-'''
-
 import random
 from enum import IntEnum
 from pathlib import Path
@@ -29,11 +19,9 @@ CORS(APP)
 
 FILE_DIR = Path(__file__).parent.absolute()
 CARDS = open(FILE_DIR / 'cards').read().splitlines()
-CURRENT_TABLE_CARDS = None
 TABLES = {
     # table_key: table_state
 }
-
 
 class GameState(IntEnum):
     T1_explains = 0
@@ -49,11 +37,6 @@ def team_no_and_guess_from_game_state(gs):
 
 def advance_game_state(gs):
     return (gs + 1) % 4
-
-@APP.route('/')
-def index_html():
-    return send_from_directory(FILE_DIR, "index.html")
-
 
 
 @APP.route('/new_tipp/<table_key>/<team>', methods=['POST'])
@@ -163,6 +146,10 @@ def new_table(table_key):
 
 
 if __name__ == '__main__':
+
+    @APP.route('/')
+    def index_html():
+        return send_from_directory(FILE_DIR, "index.html")
 
     APP.run(
         host='0.0.0.0',
