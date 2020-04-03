@@ -23,6 +23,12 @@ TABLES = {
     # table_key: table_state
 }
 
+@APP.route('/')
+def index_html():
+    print("yeah", FILE_DIR)
+    return send_from_directory(FILE_DIR / 'static', "index.html")
+
+
 class GameState(IntEnum):
     T1_explains = 0
     T1_guess = 1
@@ -147,9 +153,6 @@ def new_table(table_key):
 
 if __name__ == '__main__':
 
-    @APP.route('/')
-    def index_html():
-        return send_from_directory(FILE_DIR, "index.html")
 
     APP.run(
         host='0.0.0.0',
