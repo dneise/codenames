@@ -27,11 +27,13 @@ from flask_cors import CORS
 APP = Flask(__name__)
 CORS(APP)
 
-CARDS = None
+FILE_DIR = Path(__file__).parent.absolute()
+CARDS = open(FILE_DIR / 'cards').read().splitlines()
 CURRENT_TABLE_CARDS = None
 TABLES = {
     # table_key: table_state
 }
+
 
 class GameState(IntEnum):
     T1_explains = 0
@@ -50,7 +52,7 @@ def advance_game_state(gs):
 
 @APP.route('/')
 def index_html():
-    return send_from_directory(Path('.').absolute(), "index.html")
+    return send_from_directory(FILE_DIR, "index.html")
 
 
 
@@ -161,7 +163,7 @@ def new_table(table_key):
 
 
 if __name__ == '__main__':
-    CARDS = open('cards').read().splitlines()
+
     APP.run(
         host='0.0.0.0',
         # host='127.0.0.1',
